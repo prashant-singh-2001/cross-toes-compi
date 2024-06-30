@@ -11,10 +11,10 @@ const Squares = [
 ];
 
 const App = () => {
-  const [mode, setMode] = useState(true);
+  const [mode, setMode] = useState(false);
   const [gameState, setGameState] = useState(Squares);
   const [current, setCurrent] = useState("circle");
-  const [fS, setFS] = useState(false);
+  const [fS, setFS] = useState(null);
   const [finishedArrayState, setFinishedArrayState] = useState([]);
   const [play, setPlay] = useState(false);
   const [socket, setSocket] = useState(null);
@@ -70,7 +70,6 @@ const App = () => {
     if (!result.isConfirmed) return;
     const username = result.value.trim();
     setPlayerName(username);
-    console.log(playerName);
     const newSocket = io("http://localhost:3000", { autoConnect: true });
     setSocket(newSocket);
 
@@ -90,8 +89,14 @@ const App = () => {
     newSocket.emit("request_to_play", {
       playerName: username,
     });
+
+    newSocket.on("RivalDisconnected", () => {
+      setFS("RivalDisconnected");
+    });
+
     newSocket.on("playerMovedFromServer", (data) => {
       const { id, current } = data.state;
+      data.state;
       setGameState((prevState) => {
         const newState = [...prevState];
         const rI = Math.floor(id / 3);
@@ -107,7 +112,9 @@ const App = () => {
   useEffect(() => {
     if (socket) {
       const winner = checkWinner();
-      if (winner) {
+      if (winner === "circle" || winner === "cross") {
+        setFS(winner === playingAs ? playerName : rival);
+      } else if (winner) {
         setFS(winner);
       }
     }
@@ -155,25 +162,23 @@ const App = () => {
     <div className={mode ? "dark" : "light"}>
       <div className="w-screen h-screen py-10 flex flex-col items-center gap-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-100">
         <div className="select-none flex justify-between items-center w-1/2 md:px-24">
-          {console.log(playingAs)}
           <div
             className={`h-fit w-14 md:w-20 lg:w-32 py-2 rounded-tr-3xl rounded-bl-3xl text-sm md:text-lg lg:text-xl font-bold text-zinc-50 dark:text-zinc-800 text-center ${
-              playingAs === current
+              playingAs === current && fS === null
                 ? playingAs === "circle"
-                  ? "bg-fuchsia-400 dark:bg-fuchsia-700"
-                  : "bg-cyan-400 dark:bg-cyan-800"
+                  ? "bg-fuchsia-800 dark:bg-fuchsia-200"
+                  : "bg-cyan-800 dark:bg-cyan-200"
                 : "bg-zinc-500 dark:bg-zinc-200"
             }`}
           >
             {playerName}
           </div>
-          {console.log(playingAs)}
           <div
             className={`h-fit w-14 md:w-20 lg:w-32 py-2 rounded-br-3xl rounded-tl-3xl text-sm md:text-lg lg:text-xl font-bold text-zinc-50 dark:text-zinc-800 text-center ${
-              playingAs !== current
+              playingAs !== current && fS === null
                 ? playingAs === "cross"
-                  ? "bg-fuchsia-400 dark:bg-fuchsia-700"
-                  : "bg-cyan-400 dark:bg-cyan-800"
+                  ? "bg-fuchsia-800 dark:bg-fuchsia-200"
+                  : "bg-cyan-800 dark:bg-cyan-200"
                 : "bg-zinc-500 dark:bg-zinc-200"
             }`}
           >
@@ -209,19 +214,29 @@ const App = () => {
         </div>
         {fS ? (
           <>
-            {fS !== "draw" ? (
+            {fS !== "draw" && fS !== "RivalDisconnected" ? (
               <div className="flex flex-col justify-center items-center w-11/12 sm:w-3/4 md:w-1/2 lg:w-1/3 h-auto text-zinc-800 dark:text-zinc-100 p-6 sm:p-8 md:p-10 rounded-lg transition-all duration-300">
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4 animate-bounce">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4">
                   {fS}
                 </h1>
-                <p className="text-lg sm:text-xl md:text-2xl font-semibold bg-yellow-300 dark:bg-yellow-500 px-6 py-2 rounded-full ring-2 ring-yellow-500 dark:ring-yellow-300 animate-pulse">
+                <p className="text-lg sm:text-xl md:text-2xl font-semibold bg-yellow-300 dark:bg-yellow-500 px-6 py-2 rounded-full ring-2 ring-yellow-500 dark:ring-yellow-300">
                   won the Game!
                 </p>
+
+                {fS === playerName ? (
+                  <p className="text-amber-500 dark:text-amber-300 font-bold text-xl mt-4">
+                    Wo HOooo!! We won!
+                  </p>
+                ) : (
+                  <p className="text-gray-700 dark:text-gray-500 font-bold text-xl mt-4">
+                    Hard Luck! We'll get'em next time!
+                  </p>
+                )}
               </div>
             ) : (
               <div className="flex flex-col justify-center items-center w-11/12 sm:w-3/4 md:w-1/2 lg:w-1/3 h-auto text-zinc-800 dark:text-zinc-100 p-6 sm:p-8 md:p-10 rounded-lg transition-all duration-300">
                 <p className="text-lg sm:text-xl md:text-2xl font-semibold bg-yellow-300 dark:bg-yellow-500 px-6 py-2 rounded-full ring-2 ring-yellow-500 dark:ring-yellow-300 animate-pulse">
-                  Match is a draw
+                  {fS === "draw" ? "Match is a draw" : "Rival Disconnected"}
                 </p>
               </div>
             )}

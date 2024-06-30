@@ -16,6 +16,7 @@ const Square = ({
   const [icon, setIcon] = useState(null);
 
   const clickOnSquare = () => {
+    if (playingAs !== current) return;
     if (!icon && !finishedArrayState.includes(id) && !fS) {
       socket.emit("playerMovedFromClient", { state: { id, current } });
       if (current === "circle") {
@@ -39,7 +40,6 @@ const Square = ({
   const isFinishedSquare = finishedArrayState.includes(id);
   return (
     <button
-      disabled={playingAs !== current}
       onClick={clickOnSquare}
       className={`w-14 h-14 md:w-20 md:h-20 lg:w-28 lg:h-28 flex text-center items-center justify-center rounded md:rounded-lg lg:rounded-2xl   ${
         !icon && !isFinishedSquare && !fS

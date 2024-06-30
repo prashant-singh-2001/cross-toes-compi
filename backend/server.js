@@ -7,6 +7,7 @@ const io = new Server(httpServer, {
 });
 
 const allUsers = {};
+const allRooms = [];
 
 io.on("connection", (socket) => {
   allUsers[socket.id] = { socket: socket, online: true, playing: false };
@@ -22,6 +23,10 @@ io.on("connection", (socket) => {
       }
     }
     if (rival) {
+      allRooms.push({
+        p1: rival,
+        p2: cu,
+      });
       rival.socket.emit("RivalFound", {
         rival: cu.playerName,
         playingAs: "circle",
@@ -43,6 +48,19 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     const cu = allUsers[socket.id];
     cu.online = false;
+    cu.playing = false;
+
+    for (let index = 0; index < allRooms.length; index++) {
+      const { p1, p2 } = allRooms[index];
+      if (p1.socket.id === socket.id) {
+        p2.socket.emit("RivalDisconnected");
+        break;
+      }
+      if (p2.socket.id === socket.id) {
+        p1.socket.emit("RivalDisconnected");
+        break;
+      }
+    }
   });
 });
 
