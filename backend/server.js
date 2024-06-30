@@ -22,8 +22,20 @@ io.on("connection", (socket) => {
       }
     }
     if (rival) {
-      rival.socket.emit("RivalFound", { rival: cu.playerName });
-      cu.socket.emit("RivalFound", { rival: rival.playerName });
+      rival.socket.emit("RivalFound", {
+        rival: cu.playerName,
+        playingAs: "circle",
+      });
+      cu.socket.emit("RivalFound", {
+        rival: rival.playerName,
+        playingAs: "cross",
+      });
+      cu.socket.on("playerMovedFromClient", (data) => {
+        rival.socket.emit("playerMovedFromServer", { ...data });
+      });
+      rival.socket.on("playerMovedFromClient", (data) => {
+        cu.socket.emit("playerMovedFromServer", { ...data });
+      });
     } else {
       cu.socket.emit("RivalNotFound");
     }
